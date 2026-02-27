@@ -495,6 +495,14 @@ body {
 .room-empty-title { font-size: var(--font-subhead); font-weight: 600; color: var(--text-secondary); }
 .room-empty-hint  { font-size: var(--font-caption); }
 
+/* ── Session banner ───────────────────────────────────────────── */
+.session-banner {
+  align-self: center;
+  font-size: var(--font-caption);
+  color: var(--text-muted);
+  padding: var(--space-2) 0;
+}
+
 /* ── Reduced motion ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }

@@ -404,7 +404,8 @@ function appendAgentMsg(agent) {
         });
       }
     },
-    error(msg) { bubble.textContent = '\u26a0 ' + msg; bubble.classList.add('error'); },
+    finalize(text) { bubble.innerHTML = renderMd(text); scrollRoom(); },
+    error(msg)     { bubble.textContent = '\u26a0 ' + msg; bubble.classList.add('error'); },
   };
 }
 
@@ -453,8 +454,53 @@ async function handleSend() {
     sendBtn.disabled = false;
     inputEl.inert    = false;
     abortBtn.hidden  = true;
+    autoSave();
     inputEl.focus();
   }
+}
+
+// ── Session persistence ───────────────────────────────────────────
+const SESSION_KEY = 'agent-room-session';
+
+function autoSave() {
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ sharedHistory, agentHistory }));
+  } catch {}
+}
+
+function clearChat() {
+  sharedHistory.length = 0;
+  for (const k in agentHistory) delete agentHistory[k];
+  roomMessages.innerHTML = '';
+  const empty = document.createElement('div');
+  empty.className = 'room-empty';
+  empty.innerHTML = '<div class="room-empty-title">Dev Chat Room</div>' +
+    '<div class="room-empty-hint">Toggle agents above, then type a message to start</div>';
+  roomMessages.appendChild(empty);
+  try { localStorage.removeItem(SESSION_KEY); } catch {}
+}
+
+function tryRestoreSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    const { sharedHistory: sh, agentHistory: ah } = JSON.parse(raw);
+    if (!sh?.length) return;
+    sh.forEach(m => sharedHistory.push(m));
+    Object.keys(ah).forEach(k => { agentHistory[k] = ah[k]; });
+    removeEmpty();
+    const banner = document.createElement('div');
+    banner.className = 'session-banner';
+    banner.textContent = '— session restored —';
+    roomMessages.appendChild(banner);
+    sh.forEach((userMsg, i) => {
+      appendUserMsg(userMsg.content);
+      agents.forEach(agent => {
+        const resp = agentHistory[agent.id]?.[i];
+        if (resp) appendAgentMsg(agent).finalize(resp.content);
+      });
+    });
+  } catch {}
 }
 
 // ── Init ──────────────────────────────────────────────────────────
@@ -476,8 +522,19 @@ async function handleSend() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   });
 
-  // Any printable key typed outside a focusable element focuses the input
+  // ESC×2 clears chat; any printable key outside a field focuses input
+  let lastEscTime = 0;
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const now = Date.now();
+      if (now - lastEscTime < 600 && !isStreaming) {
+        lastEscTime = 0;
+        if (confirm('Clear chat history?')) clearChat();
+      } else {
+        lastEscTime = now;
+      }
+      return;
+    }
     const tag = document.activeElement?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (document.activeElement?.isContentEditable) return;
@@ -485,6 +542,8 @@ async function handleSend() {
     if (e.key.length > 1) return;
     inputEl.focus();
   });
+
+  tryRestoreSession();
 
   // Theme toggle
   try {
