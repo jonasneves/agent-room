@@ -61,16 +61,14 @@ function renderAuthState() {
 }
 
 // ── Agents ────────────────────────────────────────────────────────
-const AGENTS = [
-  {
-    id: 'claude', label: 'claude',
-    color: '#C84E00', bgColor: 'rgba(200,78,0,.15)',
-    type: 'claude',
-    model: 'claude-sonnet-4-6',
-    endpoint: 'http://127.0.0.1:7337/claude',
-    requiresGH: false,
-    maxTokens: 1024,
-  },
+const CLAUDE_VARIANTS = [
+  { id: 'claude',       label: 'claude·sonnet', model: 'claude-sonnet-4-6',         color: '#C84E00', bgColor: 'rgba(200,78,0,.15)' },
+  { id: 'claude-haiku', label: 'claude·haiku', model: 'claude-haiku-4-5-20251001', color: '#D4783C', bgColor: 'rgba(212,120,60,.15)' },
+  { id: 'claude-opus',  label: 'claude·opus',  model: 'claude-opus-4-6',           color: '#7A2E0E', bgColor: 'rgba(122,46,14,.15)' },
+];
+
+let agents = [
+  { ...CLAUDE_VARIANTS[0], type: 'claude', endpoint: 'http://127.0.0.1:7337/claude', requiresGH: false, maxTokens: 1024 },
   {
     id: 'gpt', label: 'gpt',
     color: '#10a37f', bgColor: 'rgba(16,163,127,.15)',
@@ -93,41 +91,97 @@ const AGENTS = [
 
 const activeAgents = new Set(['claude']);
 
+function createAgentToggle(container, agent, insertBefore = null) {
+  const btn = document.createElement('button');
+  btn.id = `toggle-${agent.id}`;
+  btn.className = 'agent-toggle' + (activeAgents.has(agent.id) ? ' active' : '');
+  btn.style.setProperty('--agent-color', agent.color);
+  btn.style.setProperty('--agent-bg', agent.bgColor);
+
+  btn.dataset.model = agent.model;
+
+  const dot = document.createElement('span');
+  dot.className = 'agent-dot';
+  btn.appendChild(dot);
+  btn.appendChild(document.createTextNode(agent.label));
+
+  btn.addEventListener('click', () => {
+    if (agent.requiresGH && !getGHAuth()) {
+      showToast('Sign in with GitHub to use this model', 'error');
+      return;
+    }
+    if (activeAgents.has(agent.id)) {
+      activeAgents.delete(agent.id);
+      btn.classList.remove('active');
+    } else {
+      activeAgents.add(agent.id);
+      btn.classList.add('active');
+    }
+  });
+
+  if (insertBefore) container.insertBefore(btn, insertBefore);
+  else container.appendChild(btn);
+  return btn;
+}
+
+function addClaudeVariant(variant) {
+  const agent = { ...variant, type: 'claude', endpoint: 'http://127.0.0.1:7337/claude', requiresGH: false, maxTokens: 1024 };
+  agents.push(agent);
+  activeAgents.add(agent.id);
+
+  // Insert new toggle right after the claude-group, before gpt
+  const container = document.getElementById('agent-toggles');
+  const gptToggle = document.getElementById('toggle-gpt');
+  createAgentToggle(container, agent, gptToggle);
+
+  // Remove this variant from the hover picker
+  document.getElementById(`picker-opt-${variant.id}`)?.remove();
+
+  // If all variants added, suppress the hover caret
+  const pickerInner = document.querySelector('#claude-picker .claude-picker-inner');
+  if (pickerInner && !pickerInner.children.length) {
+    document.getElementById('claude-group')?.classList.add('no-picker');
+  }
+}
+
 function buildAgentToggles() {
   const container = document.getElementById('agent-toggles');
-  AGENTS.forEach(agent => {
-    const btn = document.createElement('button');
-    btn.id = `toggle-${agent.id}`;
-    btn.className = 'agent-toggle' + (activeAgents.has(agent.id) ? ' active' : '');
-    btn.style.setProperty('--agent-color', agent.color);
-    btn.style.setProperty('--agent-bg', agent.bgColor);
 
-    const dot = document.createElement('span');
-    dot.className = 'agent-dot';
-    btn.appendChild(dot);
-    btn.appendChild(document.createTextNode(agent.label));
+  // Claude group: base toggle + hover picker for extra variants
+  const group = document.createElement('div');
+  group.className = 'claude-group';
+  group.id        = 'claude-group';
 
-    btn.addEventListener('click', () => {
-      if (agent.requiresGH && !getGHAuth()) {
-        showToast('Sign in with GitHub to use this model', 'error');
-        return;
-      }
-      if (activeAgents.has(agent.id)) {
-        activeAgents.delete(agent.id);
-        btn.classList.remove('active');
-      } else {
-        activeAgents.add(agent.id);
-        btn.classList.add('active');
-      }
-    });
+  createAgentToggle(group, agents.find(a => a.id === 'claude'));
 
-    container.appendChild(btn);
+  const picker = document.createElement('div');
+  picker.className = 'claude-picker';
+  picker.id        = 'claude-picker';
+
+  const pickerInner = document.createElement('div');
+  pickerInner.className = 'claude-picker-inner';
+
+  CLAUDE_VARIANTS.slice(1).forEach(variant => {
+    const opt = document.createElement('button');
+    opt.className = 'claude-picker-option';
+    opt.id        = `picker-opt-${variant.id}`;
+    opt.textContent = variant.label;
+    opt.style.setProperty('--option-color', variant.color);
+    opt.addEventListener('click', () => addClaudeVariant(variant));
+    pickerInner.appendChild(opt);
   });
+
+  picker.appendChild(pickerInner);
+  group.appendChild(picker);
+  container.appendChild(group);
+
+  // Remaining agents
+  agents.filter(a => a.type !== 'claude').forEach(agent => createAgentToggle(container, agent));
 }
 
 function updateAgentAvailability() {
   const auth = getGHAuth();
-  AGENTS.forEach(agent => {
+  agents.forEach(agent => {
     const btn = document.getElementById(`toggle-${agent.id}`);
     if (!btn) return;
     if (agent.requiresGH && !auth) {
@@ -243,7 +297,16 @@ function buildMessages(agentId) {
   const msgs = [];
   const pairs = Math.min(sharedHistory.length - 1, hist.length);
   for (let i = 0; i < pairs; i++) {
-    msgs.push(sharedHistory[i]);
+    const others = agents
+      .filter(a => a.id !== agentId && agentHistory[a.id]?.[i])
+      .map(a => `${a.label}: ${agentHistory[a.id][i].content}`)
+      .join('\n\n');
+    msgs.push({
+      role: 'user',
+      content: others
+        ? `${sharedHistory[i].content}\n\n[Other agents also replied:\n${others}]`
+        : sharedHistory[i].content,
+    });
     msgs.push(hist[i]);
   }
   msgs.push(sharedHistory[sharedHistory.length - 1]);
@@ -329,7 +392,7 @@ async function handleSend() {
   const text = inputEl.value.trim();
   if (!text || isStreaming) return;
 
-  const selected = AGENTS.filter(a => activeAgents.has(a.id));
+  const selected = agents.filter(a => activeAgents.has(a.id));
   if (!selected.length) { showToast('Select at least one agent', 'error'); return; }
 
   inputEl.value    = '';
