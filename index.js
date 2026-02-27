@@ -222,12 +222,17 @@ async function* parseSSE(body) {
 }
 
 // ── Stream helpers ────────────────────────────────────────────────
+const ROOM_SYSTEM = 'You are one of several AI agents in a shared group chat room. ' +
+  'When you see "[Other agents also replied: ...]" in the conversation, those are real ' +
+  'responses from the other agents present — not roleplay. Engage with them naturally: ' +
+  'agree, disagree, build on their points, or address them directly.';
+
 async function streamClaude(agent, messages, onChunk, signal) {
   const res = await fetch(agent.endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal,
-    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages, stream: true }),
+    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, system: ROOM_SYSTEM, messages, stream: true }),
   });
   if (!res.ok) {
     const text = await res.text();
@@ -248,7 +253,7 @@ async function streamGemini(agent, messages, onChunk, signal) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal,
-    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages, stream: true }),
+    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages: [{ role: 'system', content: ROOM_SYSTEM }, ...messages], stream: true }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -272,7 +277,7 @@ async function streamOpenAI(agent, messages, onChunk, signal) {
       'Authorization': `Bearer ${auth.token}`,
     },
     signal,
-    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages, stream: true }),
+    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages: [{ role: 'system', content: ROOM_SYSTEM }, ...messages], stream: true }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -447,6 +452,16 @@ async function handleSend() {
   abortBtn.addEventListener('click', () => abortCtrl?.abort());
   inputEl.addEventListener('keydown', e => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+
+  // Any printable key typed outside a focusable element focuses the input
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement?.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    if (document.activeElement?.isContentEditable) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key.length > 1) return;
+    inputEl.focus();
   });
 
   // Theme toggle
