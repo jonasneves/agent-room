@@ -161,11 +161,6 @@ function buildAgentToggles() {
   const pickerInner = document.createElement('div');
   pickerInner.className = 'claude-picker-inner';
 
-  const hint = document.createElement('div');
-  hint.className   = 'claude-picker-hint';
-  hint.textContent = CLAUDE_VARIANTS[0].model;
-  pickerInner.appendChild(hint);
-
   CLAUDE_VARIANTS.slice(1).forEach(variant => {
     const opt = document.createElement('button');
     opt.className = 'claude-picker-option';
