@@ -318,6 +318,18 @@ function buildMessages(agentId) {
   return msgs;
 }
 
+// ── Markdown rendering ────────────────────────────────────────────
+function escapeHtml(str) {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderMd(text) {
+  if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+    return DOMPurify.sanitize(marked.parse(text));
+  }
+  return text.split(/\n{2,}/).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+}
+
 // ── UI helpers ────────────────────────────────────────────────────
 const roomMessages   = document.getElementById('room-messages');
 const toastContainer = document.getElementById('toast-container');
@@ -380,9 +392,19 @@ function appendAgentMsg(agent) {
   roomMessages.appendChild(wrap);
   scrollRoom();
 
+  let rafPending = false;
   return {
-    update(text) { bubble.textContent = text; scrollRoom(); },
-    error(msg)   { bubble.textContent = '\u26a0 ' + msg; bubble.classList.add('error'); },
+    update(text) {
+      if (!rafPending) {
+        rafPending = true;
+        requestAnimationFrame(() => {
+          rafPending = false;
+          bubble.innerHTML = renderMd(text);
+          scrollRoom();
+        });
+      }
+    },
+    error(msg) { bubble.textContent = '\u26a0 ' + msg; bubble.classList.add('error'); },
   };
 }
 
