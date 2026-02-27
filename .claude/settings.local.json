@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(git:*)",
+      "Bash(gh repo:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(node:*)"
+    ]
+  }
+}
