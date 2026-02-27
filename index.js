@@ -83,10 +83,10 @@ const AGENTS = [
   {
     id: 'gemini', label: 'gemini',
     color: '#4285f4', bgColor: 'rgba(66,133,244,.15)',
-    type: 'openai',
-    model: 'google/gemini-1.5-flash',
-    endpoint: GH_MODELS_URL,
-    requiresGH: true,
+    type: 'gemini',
+    model: 'gemini-2.0-flash',
+    endpoint: 'http://127.0.0.1:7338',
+    requiresGH: false,
     maxTokens: 1024,
   },
 ];
@@ -185,6 +185,25 @@ async function streamClaude(agent, messages, onChunk, signal) {
       text += data.delta.text;
       onChunk(text);
     }
+  }
+  return text;
+}
+
+async function streamGemini(agent, messages, onChunk, signal) {
+  const res = await fetch(agent.endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    signal,
+    body: JSON.stringify({ model: agent.model, max_tokens: agent.maxTokens, messages, stream: true }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini proxy ${res.status}`);
+  }
+  let text = '';
+  for await (const { data } of parseSSE(res.body)) {
+    const delta = data?.choices?.[0]?.delta?.content;
+    if (delta) { text += delta; onChunk(text); }
   }
   return text;
 }
@@ -327,7 +346,7 @@ async function handleSend() {
     const msgs = buildMessages(agent.id);
     const ui   = appendAgentMsg(agent);
     try {
-      const fn   = agent.type === 'claude' ? streamClaude : streamOpenAI;
+      const fn   = agent.type === 'claude' ? streamClaude : agent.type === 'gemini' ? streamGemini : streamOpenAI;
       const full = await fn(agent, msgs, t => ui.update(t), abortCtrl.signal);
       if (!agentHistory[agent.id]) agentHistory[agent.id] = [];
       agentHistory[agent.id].push({ role: 'assistant', content: full });
