@@ -62,31 +62,27 @@ function renderAuthState() {
 
 // ── Agents ────────────────────────────────────────────────────────
 const CLAUDE_VARIANTS = [
-  { id: 'claude',       label: 'claude',        model: 'claude-sonnet-4-6',         color: '#C84E00', bgColor: 'rgba(200,78,0,.15)' },
+  { id: 'claude',       label: 'claude',       model: 'claude-sonnet-4-6',         color: '#C84E00', bgColor: 'rgba(200,78,0,.15)'   },
   { id: 'claude-haiku', label: 'claude·haiku', model: 'claude-haiku-4-5-20251001', color: '#D4783C', bgColor: 'rgba(212,120,60,.15)' },
-  { id: 'claude-opus',  label: 'claude·opus',  model: 'claude-opus-4-6',           color: '#7A2E0E', bgColor: 'rgba(122,46,14,.15)' },
+  { id: 'claude-opus',  label: 'claude·opus',  model: 'claude-opus-4-6',           color: '#7A2E0E', bgColor: 'rgba(122,46,14,.15)'  },
+];
+
+const GPT_VARIANTS = [
+  { id: 'gpt',    label: 'gpt',    model: 'gpt-4o-mini', color: '#10a37f', bgColor: 'rgba(16,163,127,.15)' },
+  { id: 'gpt-4o', label: 'gpt·4o', model: 'gpt-4o',      color: '#0d8a6b', bgColor: 'rgba(13,138,107,.15)' },
+  { id: 'gpt-o1', label: 'gpt·o1', model: 'o1-mini',     color: '#087a5e', bgColor: 'rgba(8,122,94,.15)'   },
+];
+
+const GEMINI_VARIANTS = [
+  { id: 'gemini',         label: 'gemini',         model: 'gemini-2.0-flash',     color: '#4285f4', bgColor: 'rgba(66,133,244,.15)'  },
+  { id: 'gemini-pro',     label: 'gemini·pro',     model: 'gemini-1.5-pro',       color: '#3367d6', bgColor: 'rgba(51,103,214,.15)'  },
+  { id: 'gemini-flash-2', label: 'gemini·flash-2', model: 'gemini-2.0-flash-exp', color: '#1a56c4', bgColor: 'rgba(26,86,196,.15)'   },
 ];
 
 let agents = [
   { ...CLAUDE_VARIANTS[0], type: 'claude', endpoint: 'http://127.0.0.1:7337/claude', requiresGH: false, maxTokens: 1024 },
-  {
-    id: 'gpt', label: 'gpt',
-    color: '#10a37f', bgColor: 'rgba(16,163,127,.15)',
-    type: 'openai',
-    model: 'gpt-4o-mini',
-    endpoint: GH_MODELS_URL,
-    requiresGH: true,
-    maxTokens: 1024,
-  },
-  {
-    id: 'gemini', label: 'gemini',
-    color: '#4285f4', bgColor: 'rgba(66,133,244,.15)',
-    type: 'gemini',
-    model: 'gemini-2.0-flash',
-    endpoint: 'http://127.0.0.1:7338',
-    requiresGH: false,
-    maxTokens: 1024,
-  },
+  { ...GPT_VARIANTS[0],    type: 'openai', endpoint: GH_MODELS_URL,                  requiresGH: true,  maxTokens: 1024 },
+  { ...GEMINI_VARIANTS[0], type: 'gemini', endpoint: 'http://127.0.0.1:7338',        requiresGH: false, maxTokens: 1024 },
 ];
 
 const activeAgents = new Set(['claude']);
@@ -97,8 +93,6 @@ function createAgentToggle(container, agent, insertBefore = null) {
   btn.className = 'agent-toggle' + (activeAgents.has(agent.id) ? ' active' : '');
   btn.style.setProperty('--agent-color', agent.color);
   btn.style.setProperty('--agent-bg', agent.bgColor);
-
-  btn.dataset.model = agent.model;
 
   const dot = document.createElement('span');
   dot.className = 'agent-dot';
@@ -124,59 +118,71 @@ function createAgentToggle(container, agent, insertBefore = null) {
   return btn;
 }
 
-function addClaudeVariant(variant) {
-  const agent = { ...variant, type: 'claude', endpoint: 'http://127.0.0.1:7337/claude', requiresGH: false, maxTokens: 1024 };
+function addVariant(variant, type, endpoint, requiresGH, groupId) {
+  if (requiresGH && !getGHAuth()) {
+    showToast('Sign in with GitHub to use this model', 'error');
+    return;
+  }
+
+  const agent = { ...variant, type, endpoint, requiresGH, maxTokens: 1024 };
   agents.push(agent);
   activeAgents.add(agent.id);
 
-  // Insert new toggle right after the claude-group, before gpt
+  // Insert after the group and any previously added variants, before the next group
   const container = document.getElementById('agent-toggles');
-  const gptToggle = document.getElementById('toggle-gpt');
-  createAgentToggle(container, agent, gptToggle);
+  const group = document.getElementById(`${groupId}-group`);
+  let insertBefore = null;
+  let el = group?.nextElementSibling ?? null;
+  while (el) {
+    if (el.classList.contains('model-group')) { insertBefore = el; break; }
+    el = el.nextElementSibling;
+  }
+  createAgentToggle(container, agent, insertBefore);
 
-  // Remove this variant from the hover picker
   document.getElementById(`picker-opt-${variant.id}`)?.remove();
 
-  // If all variants added, suppress the hover caret
-  const pickerInner = document.querySelector('#claude-picker .claude-picker-inner');
+  const pickerInner = document.querySelector(`#${groupId}-picker .model-picker-inner`);
   if (pickerInner && !pickerInner.children.length) {
-    document.getElementById('claude-group')?.classList.add('no-picker');
+    group?.classList.add('no-picker');
   }
 }
 
-function buildAgentToggles() {
-  const container = document.getElementById('agent-toggles');
+function buildModelGroup(container, variants, type, endpoint, requiresGH) {
+  const baseId = variants[0].id;
 
-  // Claude group: base toggle + hover picker for extra variants
   const group = document.createElement('div');
-  group.className = 'claude-group';
-  group.id        = 'claude-group';
+  group.className = 'model-group';
+  group.id        = `${baseId}-group`;
 
-  createAgentToggle(group, agents.find(a => a.id === 'claude'));
+  createAgentToggle(group, agents.find(a => a.id === baseId));
 
   const picker = document.createElement('div');
-  picker.className = 'claude-picker';
-  picker.id        = 'claude-picker';
+  picker.className = 'model-picker';
+  picker.id        = `${baseId}-picker`;
 
   const pickerInner = document.createElement('div');
-  pickerInner.className = 'claude-picker-inner';
+  pickerInner.className = 'model-picker-inner';
 
-  CLAUDE_VARIANTS.slice(1).forEach(variant => {
+  variants.slice(1).forEach(variant => {
     const opt = document.createElement('button');
-    opt.className = 'claude-picker-option';
-    opt.id        = `picker-opt-${variant.id}`;
+    opt.className   = 'model-picker-option';
+    opt.id          = `picker-opt-${variant.id}`;
     opt.textContent = variant.label;
     opt.style.setProperty('--option-color', variant.color);
-    opt.addEventListener('click', () => addClaudeVariant(variant));
+    opt.addEventListener('click', () => addVariant(variant, type, endpoint, requiresGH, baseId));
     pickerInner.appendChild(opt);
   });
 
   picker.appendChild(pickerInner);
   group.appendChild(picker);
   container.appendChild(group);
+}
 
-  // Remaining agents
-  agents.filter(a => a.type !== 'claude').forEach(agent => createAgentToggle(container, agent));
+function buildAgentToggles() {
+  const container = document.getElementById('agent-toggles');
+  buildModelGroup(container, CLAUDE_VARIANTS, 'claude', 'http://127.0.0.1:7337/claude', false);
+  buildModelGroup(container, GPT_VARIANTS,    'openai', GH_MODELS_URL,                  true);
+  buildModelGroup(container, GEMINI_VARIANTS, 'gemini', 'http://127.0.0.1:7338',        false);
 }
 
 function updateAgentAvailability() {
