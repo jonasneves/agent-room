@@ -51,11 +51,11 @@ function renderAuthState() {
   const auth = getGHAuth();
   document.getElementById('auth-logged-in').hidden  = !auth;
   document.getElementById('auth-logged-out').hidden = !!auth;
-  if (auth?.user) {
+  if (auth?.login) {
     const avatar = document.getElementById('auth-avatar');
-    if (avatar) { avatar.src = auth.user.avatar_url; avatar.alt = auth.user.login; }
+    if (avatar) { avatar.src = auth.avatar_url; avatar.alt = auth.login; }
     const name = document.getElementById('auth-username');
-    if (name) name.textContent = auth.user.login;
+    if (name) name.textContent = auth.login;
   }
 }
 
