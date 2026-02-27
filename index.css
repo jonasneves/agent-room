@@ -262,7 +262,7 @@ body {
 /* Model version tooltip */
 .agent-toggle {
   position: relative;
-  z-index: 1; /* creates stacking context above siblings like .claude-picker */
+  z-index: 200; /* above .claude-picker (z-index:100) so ::after tooltip wins */
 }
 .agent-toggle[data-model]::after {
   content: attr(data-model);
