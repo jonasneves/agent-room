@@ -118,33 +118,36 @@ function createAgentToggle(container, agent, insertBefore = null) {
   return btn;
 }
 
-function addVariant(variant, type, endpoint, requiresGH, groupId) {
-  if (requiresGH && !getGHAuth()) {
-    showToast('Sign in with GitHub to use this model', 'error');
-    return;
+function switchVariant(newVariant, groupId, variants) {
+  const agent = agents.find(a => a.id === groupId);
+  if (!agent) return;
+
+  agent.model   = newVariant.model;
+  agent.label   = newVariant.label;
+  agent.color   = newVariant.color;
+  agent.bgColor = newVariant.bgColor;
+
+  const btn = document.getElementById(`toggle-${groupId}`);
+  if (btn) {
+    btn.lastChild.textContent = newVariant.label;
+    btn.style.setProperty('--agent-color', newVariant.color);
+    btn.style.setProperty('--agent-bg', newVariant.bgColor);
   }
 
-  const agent = { ...variant, type, endpoint, requiresGH, maxTokens: 1024 };
-  agents.push(agent);
-  activeAgents.add(agent.id);
-
-  // Insert after the group and any previously added variants, before the next group
-  const container = document.getElementById('agent-toggles');
-  const group = document.getElementById(`${groupId}-group`);
-  let insertBefore = null;
-  let el = group?.nextElementSibling ?? null;
-  while (el) {
-    if (el.classList.contains('model-group')) { insertBefore = el; break; }
-    el = el.nextElementSibling;
-  }
-  createAgentToggle(container, agent, insertBefore);
-
-  document.getElementById(`picker-opt-${variant.id}`)?.remove();
-
+  // Rebuild picker with all variants except the now-active one
   const pickerInner = document.querySelector(`#${groupId}-picker .model-picker-inner`);
-  if (pickerInner && !pickerInner.children.length) {
-    group?.classList.add('no-picker');
-  }
+  if (!pickerInner) return;
+  pickerInner.innerHTML = '';
+  variants
+    .filter(v => v.model !== newVariant.model)
+    .forEach(v => {
+      const opt = document.createElement('button');
+      opt.className   = 'model-picker-option';
+      opt.textContent = v.label;
+      opt.style.setProperty('--option-color', v.color);
+      opt.addEventListener('click', () => switchVariant(v, groupId, variants));
+      pickerInner.appendChild(opt);
+    });
 }
 
 function buildModelGroup(container, variants, type, endpoint, requiresGH) {
@@ -163,15 +166,16 @@ function buildModelGroup(container, variants, type, endpoint, requiresGH) {
   const pickerInner = document.createElement('div');
   pickerInner.className = 'model-picker-inner';
 
-  variants.slice(1).forEach(variant => {
+  variants.slice(1).forEach(v => {
     const opt = document.createElement('button');
     opt.className   = 'model-picker-option';
-    opt.id          = `picker-opt-${variant.id}`;
-    opt.textContent = variant.label;
-    opt.style.setProperty('--option-color', variant.color);
-    opt.addEventListener('click', () => addVariant(variant, type, endpoint, requiresGH, baseId));
+    opt.textContent = v.label;
+    opt.style.setProperty('--option-color', v.color);
+    opt.addEventListener('click', () => switchVariant(v, baseId, variants));
     pickerInner.appendChild(opt);
   });
+
+  if (!pickerInner.children.length) group.classList.add('no-picker');
 
   picker.appendChild(pickerInner);
   group.appendChild(picker);
