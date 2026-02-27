@@ -62,19 +62,19 @@ function renderAuthState() {
 
 // ── Agents ────────────────────────────────────────────────────────
 const CLAUDE_VARIANTS = [
-  { id: 'claude',       label: 'claude',       model: 'claude-sonnet-4-6',         color: '#C84E00', bgColor: 'rgba(200,78,0,.15)'   },
+  { id: 'claude',       label: 'claude·sonnet', model: 'claude-sonnet-4-6',         color: '#C84E00', bgColor: 'rgba(200,78,0,.15)'   },
   { id: 'claude-haiku', label: 'claude·haiku', model: 'claude-haiku-4-5-20251001', color: '#D4783C', bgColor: 'rgba(212,120,60,.15)' },
   { id: 'claude-opus',  label: 'claude·opus',  model: 'claude-opus-4-6',           color: '#7A2E0E', bgColor: 'rgba(122,46,14,.15)'  },
 ];
 
 const GPT_VARIANTS = [
-  { id: 'gpt',    label: 'gpt',    model: 'gpt-4o-mini', color: '#10a37f', bgColor: 'rgba(16,163,127,.15)' },
+  { id: 'gpt',    label: 'gpt·mini', model: 'gpt-4o-mini', color: '#10a37f', bgColor: 'rgba(16,163,127,.15)' },
   { id: 'gpt-4o', label: 'gpt·4o', model: 'gpt-4o',      color: '#0d8a6b', bgColor: 'rgba(13,138,107,.15)' },
   { id: 'gpt-o1', label: 'gpt·o1', model: 'o1-mini',     color: '#087a5e', bgColor: 'rgba(8,122,94,.15)'   },
 ];
 
 const GEMINI_VARIANTS = [
-  { id: 'gemini',         label: 'gemini',         model: 'gemini-2.0-flash',     color: '#4285f4', bgColor: 'rgba(66,133,244,.15)'  },
+  { id: 'gemini',         label: 'gemini·flash',   model: 'gemini-2.0-flash',     color: '#4285f4', bgColor: 'rgba(66,133,244,.15)'  },
   { id: 'gemini-pro',     label: 'gemini·pro',     model: 'gemini-1.5-pro',       color: '#3367d6', bgColor: 'rgba(51,103,214,.15)'  },
   { id: 'gemini-flash-2', label: 'gemini·flash-2', model: 'gemini-2.0-flash-exp', color: '#1a56c4', bgColor: 'rgba(26,86,196,.15)'   },
 ];
