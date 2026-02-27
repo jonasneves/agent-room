@@ -137,16 +137,18 @@ function switchVariant(newVariant, groupId, variants) {
   const pickerInner = document.querySelector(`#${groupId}-picker .model-picker-inner`);
   if (!pickerInner) return;
   pickerInner.innerHTML = '';
-  variants
-    .filter(v => v.model !== newVariant.model)
-    .forEach(v => {
-      const opt = document.createElement('button');
-      opt.className   = 'model-picker-option';
-      opt.textContent = v.label;
-      opt.style.setProperty('--option-color', v.color);
+  variants.forEach(v => {
+    const opt = document.createElement('button');
+    opt.className   = 'model-picker-option';
+    opt.textContent = v.label;
+    opt.style.setProperty('--option-color', v.color);
+    if (v.model === newVariant.model) {
+      opt.disabled = true;
+    } else {
       opt.addEventListener('click', () => switchVariant(v, groupId, variants));
-      pickerInner.appendChild(opt);
-    });
+    }
+    pickerInner.appendChild(opt);
+  });
 }
 
 function buildModelGroup(container, variants, type, endpoint, requiresGH) {
@@ -165,12 +167,16 @@ function buildModelGroup(container, variants, type, endpoint, requiresGH) {
   const pickerInner = document.createElement('div');
   pickerInner.className = 'model-picker-inner';
 
-  variants.slice(1).forEach(v => {
+  variants.forEach((v, i) => {
     const opt = document.createElement('button');
     opt.className   = 'model-picker-option';
     opt.textContent = v.label;
     opt.style.setProperty('--option-color', v.color);
-    opt.addEventListener('click', () => switchVariant(v, baseId, variants));
+    if (i === 0) {
+      opt.disabled = true;
+    } else {
+      opt.addEventListener('click', () => switchVariant(v, baseId, variants));
+    }
     pickerInner.appendChild(opt);
   });
 
