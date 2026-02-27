@@ -317,6 +317,18 @@ body {
   pointer-events: auto;
   transform: translateY(0);
 }
+/* Suppress ::after tooltip — model shown inside picker instead */
+.claude-group .agent-toggle[data-model]::after { display: none; }
+
+.claude-picker-hint {
+  padding: 4px var(--space-2) 5px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+
 .claude-picker-inner {
   background: var(--surface);
   border: 1px solid var(--border-strong);
