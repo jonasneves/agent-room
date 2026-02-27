@@ -3,97 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>microGPT Explorer</title>
+  <title>Dev Chat Room</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js" as="script">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js" as="script">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js" as="script">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css" as="style">
-  <link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js" as="script">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
   <link rel="stylesheet" href="index.css">
 </head>
 <body>
 
 <header class="app-header">
-  <span class="app-title">microGPT Explorer</span>
-  <span class="app-hint" aria-hidden="true">·</span>
-  <span class="app-hint">click any line to ask</span>
-  <a href="agent-room.html" class="btn-icon" aria-label="Open Dev Chat Room" title="Dev Chat Room" style="margin-left:auto; margin-right:4px;">
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 2h12v9H9l-3 3v-3H2V2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-    </svg>
-  </a>
-  <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme" title="Toggle dark/light" style="margin-left:0;">
+  <span class="app-title">Dev Chat Room</span>
+
+  <div class="agent-toggles" id="agent-toggles" aria-label="Active agents"></div>
+
+  <div class="header-auth">
+    <span id="auth-logged-in" hidden>
+      <span class="auth-user-pill">
+        <img id="auth-avatar" src="" alt="" width="20" height="20">
+        <span id="auth-username"></span>
+        <button id="auth-logout-btn" class="auth-logout-btn" title="Sign out">×</button>
+      </span>
+    </span>
+    <span id="auth-logged-out">
+      <button id="auth-login-btn" class="gh-login-btn">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="white" aria-hidden="true">
+          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+        </svg>
+        Login
+      </button>
+    </span>
+  </div>
+
+  <button id="theme-toggle" class="btn-icon" aria-label="Toggle theme" title="Toggle dark/light" style="margin-left:var(--space-2);">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
   </button>
 </header>
 
-<div class="body-wrap">
-  <main id="code-pane">
-    <div id="code-container"></div>
+<div class="room-body-wrap">
+  <main class="room-main" id="room-messages" aria-live="polite" aria-label="Chat messages">
+    <div class="room-empty">
+      <div class="room-empty-title">Dev Chat Room</div>
+      <div class="room-empty-hint">Toggle agents above, then type a message to start</div>
+    </div>
   </main>
 
-  <aside class="chat-panel" id="chat-panel" aria-label="AI Guide">
-    <div id="chat-messages" aria-live="polite" aria-label="Chat messages"></div>
-    <div class="chat-input-area">
-      <div id="line-context" hidden>
-        <span id="line-context-text"></span>
-        <button id="line-context-clear" aria-label="Dismiss line context">
-          <svg width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
-            <path d="M1 1l6 6M7 1L1 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-      <div class="chat-input-wrap">
-        <textarea id="chat-input" rows="3" placeholder="Ask about microGPT… (Esc×2 clears chat)" aria-label="Chat message"></textarea>
-        <button id="chat-send" aria-label="Send message" title="Send (Enter)">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-            <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <button id="chat-abort" hidden aria-label="Stop generating" title="Stop">
-          <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
-            <rect width="11" height="11" rx="2" fill="currentColor"/>
-          </svg>
-        </button>
-      </div>
+  <footer class="room-footer">
+    <div class="room-input-wrap">
+      <textarea
+        id="room-input"
+        rows="2"
+        placeholder="Message all active agents… (Enter to send)"
+        aria-label="Chat message"
+      ></textarea>
+      <button id="room-send" aria-label="Send message" title="Send (Enter)">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M8 13V3M3.5 7.5L8 3l4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button id="room-abort" hidden aria-label="Stop generating" title="Stop">
+        <svg width="11" height="11" viewBox="0 0 11 11" aria-hidden="true">
+          <rect width="11" height="11" rx="2" fill="currentColor"/>
+        </svg>
+      </button>
     </div>
-  </aside>
-</div><!-- .body-wrap -->
+  </footer>
+</div>
 
 <div class="toast-container" id="toast-container" aria-live="assertive" aria-atomic="true"></div>
 
-<div id="viz-panel" hidden aria-label="Visualization">
-  <div class="viz-panel-header">
-    <button id="viz-prev" class="viz-nav-btn" aria-label="Previous chart" disabled>
-      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-        <path d="M6.5 1.5L2.5 5l4 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-    </button>
-    <span id="viz-panel-title"></span>
-    <button id="viz-next" class="viz-nav-btn" aria-label="Next chart" disabled>
-      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-        <path d="M3.5 1.5L7.5 5l-4 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-    </button>
-    <button id="viz-panel-close" aria-label="Close visualization">
-      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-        <path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>
-    </button>
-  </div>
-  <div id="viz-chart"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
 <script src="index.js"></script>
 </body>
 </html>
