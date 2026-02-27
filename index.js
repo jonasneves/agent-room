@@ -1,12 +1,11 @@
 // ── Auth ─────────────────────────────────────────────────────────
-const GH_CLIENT_ID  = 'Ov23liv9vcDu4xC3VpWO';
+const GH_CLIENT_ID  = 'Ov23li3dnFMUNHbu1SjZ';
 const GH_MODELS_URL = 'https://models.inference.ai.azure.com/chat/completions';
-const GH_STORAGE    = 'lab6-auth';
+const GH_STORAGE    = 'gh-auth';
 
-// Reuse the already-registered callback URL from aipi590-lab6.
-// The popup will land on lab6, which exchanges the code and postMessages
-// the auth back here — no new callback URL needed.
-const GH_REDIRECT_URI = 'https://jonasneves.github.io/aipi590-lab6/';
+// Callback lives in the jonasneves/auth repo, served at neevs.io/auth/ via GitHub Pages.
+// The popup lands there, exchanges the code, and postMessages the token back.
+const GH_REDIRECT_URI = 'https://neevs.io/auth/';
 
 function getGHAuth() {
   try { return JSON.parse(localStorage.getItem(GH_STORAGE)); } catch { return null; }
