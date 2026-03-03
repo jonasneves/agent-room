@@ -1,8 +1,13 @@
-BOLD  = \033[1m
-CYAN  = \033[36m
-GREEN = \033[32m
-RESET = \033[0m
+.DEFAULT_GOAL := help
+
+.PHONY: help preview
+
+help:
+	@echo ""
+	@echo "\033[2mDev\033[0m"
+	@echo "  \033[36mpreview\033[0m  Start local server at http://localhost:8080"
+	@echo ""
 
 preview:
-	@printf "\n$(BOLD)$(GREEN)  agent-room$(RESET)\n$(CYAN)  http://localhost:8080$(RESET)\n\n"
+	@printf "\n\033[1;36m  agent-room: http://localhost:8080\033[0m\n\n"
 	@python3 -m http.server 8080 --bind 127.0.0.1 2>/dev/null
