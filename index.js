@@ -29,6 +29,7 @@ function startLogin() {
   if (!popup) { showToast('Allow the login popup and try again', 'error'); return; }
 
   function onMsg(e) {
+    if (e.origin !== 'https://neevs.io') return;
     if (e.data?.type !== 'gh-auth') return;
     window.removeEventListener('message', onMsg);
     if (e.data.auth) {
