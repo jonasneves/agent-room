@@ -80,9 +80,9 @@ const GEMINI_VARIANTS = [
 ];
 
 let agents = [
-  { ...CLAUDE_VARIANTS[0], type: 'claude', endpoint: 'http://127.0.0.1:7337/claude', requiresGH: false, maxTokens: 1024 },
+  { ...CLAUDE_VARIANTS[0], type: 'claude', endpoint: 'http://127.0.0.1:7337/v1/messages', requiresGH: false, maxTokens: 1024 },
   { ...GPT_VARIANTS[0],    type: 'openai', endpoint: GH_MODELS_URL,                  requiresGH: true,  maxTokens: 1024 },
-  { ...GEMINI_VARIANTS[0], type: 'gemini', endpoint: 'http://127.0.0.1:7338',        requiresGH: false, maxTokens: 1024 },
+  { ...GEMINI_VARIANTS[0], type: 'gemini', endpoint: 'http://127.0.0.1:7338/v1/chat/completions', requiresGH: false, maxTokens: 1024 },
 ];
 
 const activeAgents = new Set(['claude']);
@@ -190,9 +190,9 @@ function buildModelGroup(container, variants, type, endpoint, requiresGH) {
 
 function buildAgentToggles() {
   const container = document.getElementById('agent-toggles');
-  buildModelGroup(container, CLAUDE_VARIANTS, 'claude', 'http://127.0.0.1:7337/claude', false);
+  buildModelGroup(container, CLAUDE_VARIANTS, 'claude', 'http://127.0.0.1:7337/v1/messages', false);
   buildModelGroup(container, GPT_VARIANTS,    'openai', GH_MODELS_URL,                  true);
-  buildModelGroup(container, GEMINI_VARIANTS, 'gemini', 'http://127.0.0.1:7338',        false);
+  buildModelGroup(container, GEMINI_VARIANTS, 'gemini', 'http://127.0.0.1:7338/v1/chat/completions', false);
 }
 
 function updateAgentAvailability() {
